@@ -34,8 +34,9 @@ Pastikan Python 3.6+ sudah terinstal pada sistem Anda. Anda juga perlu pip untuk
 Klon repositori ini menggunakan git:
 
 ```bash
-git clone https://github.com/<username>/api-digisehat.git
-cd api-digisehat
+git clone https://github.com/mhanif23/provis-backend.git
+cd provis-backend
+git checkout python
 ```
 
 ### Langkah 2: Instal Dependencies

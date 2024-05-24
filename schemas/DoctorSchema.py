@@ -11,6 +11,7 @@ class DoctorCreate(DoctorBase):
     innovation: str
 class Doctor(DoctorBase):
     id: int
+    specialty: str
     hospital: str
     experience: str
     philosophy: str

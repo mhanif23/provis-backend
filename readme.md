@@ -50,7 +50,7 @@ pip install -r requirements.txt
 Jalankan server FastAPI menggunakan uvicorn:
 
 ```bash
-python uvicorn main:app --reload
+python -m uvicorn main:app --reload
 ```
 
 Server akan tersedia di http://127.0.0.1:8000.

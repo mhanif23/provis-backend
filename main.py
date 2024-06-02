@@ -80,7 +80,7 @@ def readUser(user_id: int, db: Session = Depends(get_db),token: str = Depends(oa
     db_user = UserService.readUser(db, user_id=user_id)
     if db_user is None:
         raise HTTPException(status_code=404, detail="User tidak ditemukan")
-    return db_userstring
+    return db_user
 
 @app.get("/users", response_model=list[UserSchema.User])
 def readUser(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):

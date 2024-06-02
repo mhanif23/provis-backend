@@ -9,3 +9,4 @@ from .ScheduleSchema import *
 from .OrderSchema import *
 from .MessageSchema import *
 from .HospitalSchema import *
+from .PatientSchema import *

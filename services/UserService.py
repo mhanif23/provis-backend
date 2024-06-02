@@ -13,12 +13,7 @@ def authenticate(db,user: UserSchema.UserCreate):
     
 def createUser(db: Session, user: UserCreate):
     hashed_password = encrypt(user.password)
-    db_user = model.User(username=user.username, hashed_password=hashed_password,
-                         name=user.name, medical_record=user.medical_record, nik=user.nik, gender=user.gender,
-                         address=user.address, telephone=user.telephone,
-                         date_of_birth=user.date_of_birth, allergy=user.allergy,
-                         allergy_year=user.allergy_year,
-                         bpjs_status=user.bpjs_status)
+    db_user = model.User(username=user.username, hashed_password=hashed_password, role=user.role)
     db.add(db_user)
     db.commit()
     db.refresh(db_user)

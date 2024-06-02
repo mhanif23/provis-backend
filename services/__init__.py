@@ -1,4 +1,5 @@
 from .UserService import *
+from .PatientService import *
 from .DoctorService import *
 from .MedicineService import *
 from .DiagnosisService import *

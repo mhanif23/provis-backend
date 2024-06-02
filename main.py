@@ -70,7 +70,8 @@ async def login(user: UserSchema.UserLogin, db: Session = Depends(get_db)):
     if user:
         access_token  = Auth.create_access_token(user.username)
         user_id = user_login.id
-        return {"user_id":user_id,"access_token": access_token}
+        user_role = user_login.role
+        return {"user_id":user_id, "user_role":user_role, "access_token": access_token}
     else:
         raise HTTPException(status_code=400, detail=f"Tidak ada user dengan nama {user_id}")
 
@@ -90,10 +91,51 @@ def readUser(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), tok
         raise HTTPException(status_code=404, detail="List user kosong")
     return db_users
 
+# --- Pasien Routes --- #
+
+@app.post("/create_patient", response_model=PatientSchema.Patient)
+def createPatient(patient: PatientSchema.PatientCreate, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
+    patient_exists = PatientService.readPatient_byName(db, name=patient.name)
+    if patient_exists:
+        raise HTTPException(status_code=400, detail="Nama pasien sudah digunakan")
+    return PatientService.createPatient(db=db, patient=patient)
+
+@app.get("/patient/{patient_id}", response_model=PatientSchema.Patient)
+def readPatient(patient_id: int, db: Session = Depends(get_db),token: str = Depends(oauth2_scheme)):
+    usr =  Auth.verify_token(token) 
+    db_patient = PatientService.readPatient(db, patient_id=patient_id)
+    if db_patient is None:
+        raise HTTPException(status_code=404, detail="Pasien tidak ditemukan")
+    return db_patient
+
+@app.get("/patientUID/{user_id}", response_model=PatientSchema.Patient)
+def readPatient(user_id: int, db: Session = Depends(get_db),token: str = Depends(oauth2_scheme)):
+    usr =  Auth.verify_token(token) 
+    db_patient = PatientService.readPatient_byUID(db, user_id=user_id)
+    if db_patient is None:
+        raise HTTPException(status_code=404, detail="Akun ini bukan akun pasien")
+    return db_patient
+
+@app.get("/patients", response_model=list[PatientSchema.Patient])
+def readPatient(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
+    usr = Auth.verify_token(token) 
+    db_patient = PatientService.readPatient_all(db)
+    if db_patient is None:
+        raise HTTPException(status_code=404, detail="List patient kosong")
+    return db_patient
+
+@app.get("/patients/searchName", response_model=list[PatientSchema.Patient])
+def readPatient_nameAll(name: str, skip: int = 0, limit: int = 100, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
+    usr = Auth.verify_token(token)
+    db_patients = PatientService.readPatient_nameAll(db, name=name, skip=skip, limit=limit)
+    if not db_patients:
+        raise HTTPException(status_code=404, detail=f"Pasien {name} tidak ditemukan")
+    return db_patients
+
 # --- Doctor Routes --- #
 
 @app.post("/create_doctor", response_model=DoctorSchema.Doctor)
-def createDoctor(doctor: DoctorSchema.DoctorCreate, db: Session = Depends(get_db)):
+def createDoctor(doctor: DoctorSchema.DoctorCreate, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
     doctor_exists = DoctorService.readDoctor_byName(db, name=doctor.name)
     if doctor_exists:
         raise HTTPException(status_code=400, detail="Nama dokter sudah digunakan")
@@ -107,8 +149,16 @@ def readDoctor(doctor_id: int, db: Session = Depends(get_db),token: str = Depend
         raise HTTPException(status_code=404, detail="Doctor tidak ditemukan")
     return db_doctor
 
+@app.get("/doctorUID/{user_id}", response_model=DoctorSchema.Doctor)
+def readDoctor_byUID(user_id: int, db: Session = Depends(get_db),token: str = Depends(oauth2_scheme)):
+    usr =  Auth.verify_token(token) 
+    db_doctor = DoctorService.readDoctor_byUID(db, user_id=user_id)
+    if db_doctor is None:
+        raise HTTPException(status_code=404, detail="Akun ini bukan akun dokter")
+    return db_doctor
+
 @app.get("/doctors", response_model=list[DoctorSchema.Doctor])
-def readDoctor(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
+def readDoctor_all(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
     usr = Auth.verify_token(token) 
     db_doctor = DoctorService.readDoctor_all(db)
     if db_doctor is None:
@@ -134,7 +184,7 @@ def readDoctor_specialtyAll(specialty: str, skip: int = 0, limit: int = 100, db:
 # ---  Medicine Routes --- #
 
 @app.post("/create_medicine", response_model=MedicineSchema.Medicine)
-def createMedicine(medicine: MedicineSchema.MedicineCreate, db: Session = Depends(get_db)):
+def createMedicine(medicine: MedicineSchema.MedicineCreate, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
     medicine_exists = MedicineService.readMedicine_byName(db, name=medicine.name)
     if medicine_exists:
         raise HTTPException(status_code=400, detail="Obat sudah ada")
@@ -159,7 +209,7 @@ def readMedicine(skip: int = 0, limit: int = 100, db: Session = Depends(get_db),
 # --- Diagnosis Routes --- #
 
 @app.post("/create_diagnosis", response_model=DiagnosisSchema.Diagnosis)
-def createDiagnosis(diagnosis: DiagnosisSchema.DiagnosisCreate, db: Session = Depends(get_db)):
+def createDiagnosis(diagnosis: DiagnosisSchema.DiagnosisCreate, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
     return DiagnosisService.createDiagnosis(db=db, diagnosis=diagnosis)
 
 @app.get("/diagnosis/{diagnosis_id}", response_model=DiagnosisSchema.Diagnosis)
@@ -189,7 +239,7 @@ def readDiagnosis(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)
 # --- Illness Routes --- #
 
 @app.post("/create_illness", response_model=IllnessSchema.Illness)
-def createIllness(illness: IllnessSchema.IllnessCreate, db: Session = Depends(get_db)):
+def createIllness(illness: IllnessSchema.IllnessCreate, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
     illness_exists = IllnessService.readIllness_byName(db, name=illness.name)
     if illness_exists:
         raise HTTPException(status_code=400, detail="Data penyakit sudah ada")
@@ -222,7 +272,7 @@ def readIllness_all(skip: int = 0, limit: int = 100, db: Session = Depends(get_d
 # --- Review Routes --- #
 
 @app.post("/create_review", response_model=ReviewSchema.Review)
-def createReview(review: ReviewSchema.ReviewCreate, db: Session = Depends(get_db)):
+def createReview(review: ReviewSchema.ReviewCreate, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
   return ReviewService.createReview(db=db, review=review)
 
 @app.get("/review/{review_id}", response_model=ReviewSchema.Review)
@@ -260,7 +310,7 @@ def readReview_all(skip: int = 0, limit: int = 100, db: Session = Depends(get_db
 # --- Notification Route --- # 
 
 @app.post("/create_notification", response_model=NotificationSchema.Notification)
-def createNotification(notification: NotificationSchema.NotificationCreate, db: Session = Depends(get_db)):
+def createNotification(notification: NotificationSchema.NotificationCreate, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
     # notification_exists = NotificationService.readNotification_byName(db, name=notification.name)
     # if notification_exists:
     #     raise HTTPException(status_code=400, detail="Obat sudah ada")
@@ -292,7 +342,7 @@ def readNotification_all(skip: int = 0, limit: int = 100, db: Session = Depends(
 
 # --- Schedule Routes --- #
 @app.post("/create_schedule", response_model=ScheduleSchema.Schedule)
-def createSchedule(schedule: ScheduleSchema.ScheduleCreate, db: Session = Depends(get_db)):
+def createSchedule(schedule: ScheduleSchema.ScheduleCreate, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
     return ScheduleService.createSchedule(db=db, schedule=schedule)
 
 @app.get("/schedule/{schedule_id}", response_model=ScheduleSchema.Schedule)
@@ -330,7 +380,7 @@ def readSchedule_all(skip: int = 0, limit: int = 100, db: Session = Depends(get_
 # --- Order Routes --- #
 
 @app.post("/create_order", response_model=OrderSchema.Order)
-def createOrder(order: OrderSchema.OrderCreate, db: Session = Depends(get_db)):
+def createOrder(order: OrderSchema.OrderCreate, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
     return OrderService.createOrder(db=db, order=order)
 
 @app.get("/order/{order_id}", response_model=OrderSchema.Order)
@@ -360,7 +410,7 @@ def readOrder_all(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)
 # --- Message Routes --- #
 
 @app.post("/create_message", response_model=MessageSchema.Message)
-def createMessage(message: MessageSchema.MessageCreate, db: Session = Depends(get_db)):
+def createMessage(message: MessageSchema.MessageCreate, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
     return MessageService.createMessage(db=db, message=message)
 
 @app.get("/message/{message_id}", response_model=MessageSchema.Message)
@@ -380,7 +430,7 @@ def readMessages(skip: int = 0, limit: int = 100, db: Session = Depends(get_db),
 # --- Hospital Routes --- #
 
 @app.post("/create_hospital", response_model=HospitalSchema.Hospital)
-def createHospital(hospital: HospitalSchema.HospitalCreate, db: Session = Depends(get_db)):
+def createHospital(hospital: HospitalSchema.HospitalCreate, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
     hospital_exists = HospitalService.readHospital_byName(db, name=hospital.name)
     if hospital_exists:
         raise HTTPException(status_code=400, detail="Rumah Sakit sudah ada")
@@ -403,7 +453,7 @@ def readHospital_all(skip: int = 0, limit: int = 100, db: Session = Depends(get_
     return db_hospital
   
 @app.post("/token", response_model=Auth.Token)
-async def token(req: Request, form_data: OAuth2PasswordRequestForm = Depends(),db: Session = Depends(get_db)):
+async def token(req: Request, form_data: OAuth2PasswordRequestForm = Depends(),db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
 
     f = UserService.UserCreate
     f.username = form_data.username

@@ -13,6 +13,13 @@ class User(BaseDB):
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String, unique=True, index=True)
     hashed_password = Column(String)
+    role = Column(String)
+
+class Patient(BaseDB):
+    __tablename__ = "patients"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, unique=True)
     name = Column(String)
     medical_record = Column(String, unique=True, index=True)
     nik = Column(String)
@@ -27,6 +34,7 @@ class User(BaseDB):
 class Doctor(BaseDB):
     __tablename__ = "doctors"
     id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, unique=True)
     name = Column(String, unique=True, index=True)
     specialty = Column(String)
     hospital = Column(Integer)

@@ -4,7 +4,7 @@ from schemas import *
 from sqlalchemy import desc
 
 def createDoctor(db: Session, doctor: DoctorCreate):
-    db_doctor = model.Doctor(name=doctor.name, specialty=doctor.specialty,
+    db_doctor = model.Doctor(name=doctor.name, user_id=doctor.user_id, specialty=doctor.specialty,
                               hospital=doctor.hospital, experience=doctor.experience,
                               philosophy=doctor.philosophy, innovation=doctor.innovation)
     db.add(db_doctor)
@@ -17,6 +17,9 @@ def readDoctor(db: Session, doctor_id: int):
 
 def readDoctor_byName(db: Session, name: str):
     return db.query(model.Doctor).filter(model.Doctor.name == name).first()
+
+def readDoctor_byUID(db: Session, user_id: int):
+    return db.query(model.Doctor).filter(model.Doctor.user_id == user_id).first()
 
 def readDoctor_nameAll(db: Session, name: str, skip: int = 0, limit: int = 100):
     return db.query(model.Doctor).filter(model.Doctor.name.like(f"%{name}%")).offset(skip).limit(limit).all()

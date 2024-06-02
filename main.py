@@ -35,6 +35,7 @@ app = FastAPI(title="API DigiSehat",
     version="1.0.0",)
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+blacklisted_tokens = set()
 
 app.add_middleware(
     CORSMiddleware,
@@ -75,8 +76,20 @@ async def login(user: UserSchema.UserLogin, db: Session = Depends(get_db)):
     else:
         raise HTTPException(status_code=400, detail=f"Tidak ada user dengan nama {user_id}")
 
+@app.post("/logout")
+async def logout(token: str = Depends(oauth2_scheme)):
+    if token in blacklisted_tokens:
+        raise HTTPException(status_code=401, detail="Token revoked")
+    if token:
+        blacklisted_tokens.add(token)
+        return {"message": "Successfully logged out"}
+    else:
+        return {"message": "No token provided"}
+
 @app.get("/user/{user_id}", response_model=UserSchema.User)
 def readUser(user_id: int, db: Session = Depends(get_db),token: str = Depends(oauth2_scheme)):
+    if token in blacklisted_tokens:
+        raise HTTPException(status_code=401, detail="Token revoked")
     usr =  Auth.verify_token(token) 
     db_user = UserService.readUser(db, user_id=user_id)
     if db_user is None:
@@ -85,6 +98,8 @@ def readUser(user_id: int, db: Session = Depends(get_db),token: str = Depends(oa
 
 @app.get("/users", response_model=list[UserSchema.User])
 def readUser(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
+    if token in blacklisted_tokens:
+        raise HTTPException(status_code=401, detail="Token revoked")
     usr = Auth.verify_token(token) 
     db_users = UserService.readUser_all(db, skip=skip, limit=limit)
     if db_users is None:
@@ -95,6 +110,8 @@ def readUser(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), tok
 
 @app.post("/create_patient", response_model=PatientSchema.Patient)
 def createPatient(patient: PatientSchema.PatientCreate, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
+    if token in blacklisted_tokens:
+        raise HTTPException(status_code=401, detail="Token revoked")
     patient_exists = PatientService.readPatient_byName(db, name=patient.name)
     if patient_exists:
         raise HTTPException(status_code=400, detail="Nama pasien sudah digunakan")
@@ -102,6 +119,8 @@ def createPatient(patient: PatientSchema.PatientCreate, db: Session = Depends(ge
 
 @app.get("/patient/{patient_id}", response_model=PatientSchema.Patient)
 def readPatient(patient_id: int, db: Session = Depends(get_db),token: str = Depends(oauth2_scheme)):
+    if token in blacklisted_tokens:
+        raise HTTPException(status_code=401, detail="Token revoked")
     usr =  Auth.verify_token(token) 
     db_patient = PatientService.readPatient(db, patient_id=patient_id)
     if db_patient is None:
@@ -110,6 +129,8 @@ def readPatient(patient_id: int, db: Session = Depends(get_db),token: str = Depe
 
 @app.get("/patientUID/{user_id}", response_model=PatientSchema.Patient)
 def readPatient(user_id: int, db: Session = Depends(get_db),token: str = Depends(oauth2_scheme)):
+    if token in blacklisted_tokens:
+        raise HTTPException(status_code=401, detail="Token revoked")
     usr =  Auth.verify_token(token) 
     db_patient = PatientService.readPatient_byUID(db, user_id=user_id)
     if db_patient is None:
@@ -118,6 +139,8 @@ def readPatient(user_id: int, db: Session = Depends(get_db),token: str = Depends
 
 @app.get("/patients", response_model=list[PatientSchema.Patient])
 def readPatient(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
+    if token in blacklisted_tokens:
+        raise HTTPException(status_code=401, detail="Token revoked")
     usr = Auth.verify_token(token) 
     db_patient = PatientService.readPatient_all(db)
     if db_patient is None:
@@ -126,6 +149,8 @@ def readPatient(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), 
 
 @app.get("/patients/searchName", response_model=list[PatientSchema.Patient])
 def readPatient_nameAll(name: str, skip: int = 0, limit: int = 100, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
+    if token in blacklisted_tokens:
+        raise HTTPException(status_code=401, detail="Token revoked")
     usr = Auth.verify_token(token)
     db_patients = PatientService.readPatient_nameAll(db, name=name, skip=skip, limit=limit)
     if not db_patients:
@@ -136,6 +161,8 @@ def readPatient_nameAll(name: str, skip: int = 0, limit: int = 100, db: Session 
 
 @app.post("/create_doctor", response_model=DoctorSchema.Doctor)
 def createDoctor(doctor: DoctorSchema.DoctorCreate, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
+    if token in blacklisted_tokens:
+        raise HTTPException(status_code=401, detail="Token revoked")
     doctor_exists = DoctorService.readDoctor_byName(db, name=doctor.name)
     if doctor_exists:
         raise HTTPException(status_code=400, detail="Nama dokter sudah digunakan")
@@ -143,6 +170,8 @@ def createDoctor(doctor: DoctorSchema.DoctorCreate, db: Session = Depends(get_db
 
 @app.get("/doctor/{doctor_id}", response_model=DoctorSchema.Doctor)
 def readDoctor(doctor_id: int, db: Session = Depends(get_db),token: str = Depends(oauth2_scheme)):
+    if token in blacklisted_tokens:
+        raise HTTPException(status_code=401, detail="Token revoked")
     usr =  Auth.verify_token(token) 
     db_doctor = DoctorService.readDoctor(db, doctor_id=doctor_id)
     if db_doctor is None:
@@ -151,6 +180,8 @@ def readDoctor(doctor_id: int, db: Session = Depends(get_db),token: str = Depend
 
 @app.get("/doctorUID/{user_id}", response_model=DoctorSchema.Doctor)
 def readDoctor_byUID(user_id: int, db: Session = Depends(get_db),token: str = Depends(oauth2_scheme)):
+    if token in blacklisted_tokens:
+        raise HTTPException(status_code=401, detail="Token revoked")
     usr =  Auth.verify_token(token) 
     db_doctor = DoctorService.readDoctor_byUID(db, user_id=user_id)
     if db_doctor is None:
@@ -159,6 +190,8 @@ def readDoctor_byUID(user_id: int, db: Session = Depends(get_db),token: str = De
 
 @app.get("/doctors", response_model=list[DoctorSchema.Doctor])
 def readDoctor_all(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
+    if token in blacklisted_tokens:
+        raise HTTPException(status_code=401, detail="Token revoked")
     usr = Auth.verify_token(token) 
     db_doctor = DoctorService.readDoctor_all(db)
     if db_doctor is None:
@@ -167,6 +200,8 @@ def readDoctor_all(skip: int = 0, limit: int = 100, db: Session = Depends(get_db
 
 @app.get("/doctors/searchName", response_model=list[DoctorSchema.Doctor])
 def readDoctor_nameAll(name: str, skip: int = 0, limit: int = 100, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
+    if token in blacklisted_tokens:
+        raise HTTPException(status_code=401, detail="Token revoked")
     usr = Auth.verify_token(token)
     db_doctors = DoctorService.readDoctor_nameAll(db, name=name, skip=skip, limit=limit)
     if not db_doctors:
@@ -175,6 +210,8 @@ def readDoctor_nameAll(name: str, skip: int = 0, limit: int = 100, db: Session =
 
 @app.get("/doctors/searchSpecialty", response_model=list[DoctorSchema.Doctor])
 def readDoctor_specialtyAll(specialty: str, skip: int = 0, limit: int = 100, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
+    if token in blacklisted_tokens:
+        raise HTTPException(status_code=401, detail="Token revoked")
     usr = Auth.verify_token(token)
     db_doctors = DoctorService.readDoctor_specialtyAll(db, specialty=specialty, skip=skip, limit=limit)
     if not db_doctors:
@@ -185,6 +222,8 @@ def readDoctor_specialtyAll(specialty: str, skip: int = 0, limit: int = 100, db:
 
 @app.post("/create_medicine", response_model=MedicineSchema.Medicine)
 def createMedicine(medicine: MedicineSchema.MedicineCreate, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
+    if token in blacklisted_tokens:
+        raise HTTPException(status_code=401, detail="Token revoked")
     medicine_exists = MedicineService.readMedicine_byName(db, name=medicine.name)
     if medicine_exists:
         raise HTTPException(status_code=400, detail="Obat sudah ada")
@@ -192,6 +231,8 @@ def createMedicine(medicine: MedicineSchema.MedicineCreate, db: Session = Depend
 
 @app.get("/medicine/{medicine_id}", response_model=MedicineSchema.Medicine)
 def readMedicine(medicine_id: int, db: Session = Depends(get_db),token: str = Depends(oauth2_scheme)):
+    if token in blacklisted_tokens:
+        raise HTTPException(status_code=401, detail="Token revoked")
     usr =  Auth.verify_token(token) 
     db_medicine = MedicineService.readMedicine(db, medicine_id=medicine_id)
     if db_medicine is None:
@@ -200,6 +241,8 @@ def readMedicine(medicine_id: int, db: Session = Depends(get_db),token: str = De
 
 @app.get("/medicines", response_model=list[MedicineSchema.Medicine])
 def readMedicine(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
+    if token in blacklisted_tokens:
+        raise HTTPException(status_code=401, detail="Token revoked")
     usr = Auth.verify_token(token) 
     db_medicine = MedicineService.readMedicine_all(db)
     if db_medicine is None:
@@ -210,10 +253,14 @@ def readMedicine(skip: int = 0, limit: int = 100, db: Session = Depends(get_db),
 
 @app.post("/create_diagnosis", response_model=DiagnosisSchema.Diagnosis)
 def createDiagnosis(diagnosis: DiagnosisSchema.DiagnosisCreate, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
+    if token in blacklisted_tokens:
+        raise HTTPException(status_code=401, detail="Token revoked")
     return DiagnosisService.createDiagnosis(db=db, diagnosis=diagnosis)
 
 @app.get("/diagnosis/{diagnosis_id}", response_model=DiagnosisSchema.Diagnosis)
 def readDiagnosis(diagnosis_id: int, db: Session = Depends(get_db),token: str = Depends(oauth2_scheme)):
+    if token in blacklisted_tokens:
+        raise HTTPException(status_code=401, detail="Token revoked")
     usr =  Auth.verify_token(token) 
     db_diagnosis = DiagnosisService.readDiagnosis(db, diagnosis_id=diagnosis_id)
     if db_diagnosis is None:
@@ -222,6 +269,8 @@ def readDiagnosis(diagnosis_id: int, db: Session = Depends(get_db),token: str = 
 
 @app.get("/diagnosis_patient/{patient_id}", response_model=list[DiagnosisSchema.Diagnosis])
 def readDiagnosis_byUser(patient_id: int, db: Session = Depends(get_db), skip: int = 0, limit: int = 100, token: str = Depends(oauth2_scheme)):
+    if token in blacklisted_tokens:
+        raise HTTPException(status_code=401, detail="Token revoked")
     usr =  Auth.verify_token(token) 
     db_diagnosis = DiagnosisService.readDiagnosis_byUser(db, patient_id=patient_id)
     if db_diagnosis is None:
@@ -230,6 +279,8 @@ def readDiagnosis_byUser(patient_id: int, db: Session = Depends(get_db), skip: i
 
 @app.get("/diagnoses", response_model=list[DiagnosisSchema.Diagnosis])
 def readDiagnosis(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
+    if token in blacklisted_tokens:
+        raise HTTPException(status_code=401, detail="Token revoked")
     usr = Auth.verify_token(token) 
     db_diagnosis = DiagnosisService.readDiagnosis_all(db)
     if db_diagnosis is None:
@@ -240,6 +291,8 @@ def readDiagnosis(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)
 
 @app.post("/create_illness", response_model=IllnessSchema.Illness)
 def createIllness(illness: IllnessSchema.IllnessCreate, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
+    if token in blacklisted_tokens:
+        raise HTTPException(status_code=401, detail="Token revoked")
     illness_exists = IllnessService.readIllness_byName(db, name=illness.name)
     if illness_exists:
         raise HTTPException(status_code=400, detail="Data penyakit sudah ada")
@@ -247,6 +300,8 @@ def createIllness(illness: IllnessSchema.IllnessCreate, db: Session = Depends(ge
 
 @app.get("/illness/{illness_id}", response_model=IllnessSchema.Illness)
 def readIllness(illness_id: int, db: Session = Depends(get_db),token: str = Depends(oauth2_scheme)):
+    if token in blacklisted_tokens:
+        raise HTTPException(status_code=401, detail="Token revoked")
     usr =  Auth.verify_token(token) 
     db_illness = IllnessService.readIllness(db, illness_id=illness_id)
     if db_illness is None:
@@ -255,6 +310,8 @@ def readIllness(illness_id: int, db: Session = Depends(get_db),token: str = Depe
 
 @app.get("/illness_category/{category}", response_model=list[IllnessSchema.Illness])
 def readIllness_byCategory(category: str, db: Session = Depends(get_db), skip: int = 0, limit: int = 100, token: str = Depends(oauth2_scheme)):
+    if token in blacklisted_tokens:
+        raise HTTPException(status_code=401, detail="Token revoked")
     usr =  Auth.verify_token(token) 
     db_illness = IllnessService.readIllness_byCategory(db, category=category)
     if db_illness is None:
@@ -263,6 +320,8 @@ def readIllness_byCategory(category: str, db: Session = Depends(get_db), skip: i
 
 @app.get("/illnesses", response_model=list[IllnessSchema.Illness])
 def readIllness_all(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
+    if token in blacklisted_tokens:
+        raise HTTPException(status_code=401, detail="Token revoked")
     usr = Auth.verify_token(token) 
     db_illness = IllnessService.readIllness_all(db)
     if db_illness is None:
@@ -273,10 +332,14 @@ def readIllness_all(skip: int = 0, limit: int = 100, db: Session = Depends(get_d
 
 @app.post("/create_review", response_model=ReviewSchema.Review)
 def createReview(review: ReviewSchema.ReviewCreate, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
-  return ReviewService.createReview(db=db, review=review)
+    if token in blacklisted_tokens:
+        raise HTTPException(status_code=401, detail="Token revoked")
+    return ReviewService.createReview(db=db, review=review)
 
 @app.get("/review/{review_id}", response_model=ReviewSchema.Review)
 def readReview(review_id: int, db: Session = Depends(get_db),token: str = Depends(oauth2_scheme)):
+    if token in blacklisted_tokens:
+        raise HTTPException(status_code=401, detail="Token revoked")
     usr =  Auth.verify_token(token) 
     db_review = ReviewService.readReview(db, review_id=review_id)
     if db_review is None:
@@ -285,6 +348,8 @@ def readReview(review_id: int, db: Session = Depends(get_db),token: str = Depend
 
 @app.get("/review_patient/{patient_id}", response_model=list[ReviewSchema.Review])
 def readReview_byUser(patient_id: int, db: Session = Depends(get_db), skip: int = 0, limit: int = 100, token: str = Depends(oauth2_scheme)):
+    if token in blacklisted_tokens:
+        raise HTTPException(status_code=401, detail="Token revoked")
     usr =  Auth.verify_token(token) 
     db_review = ReviewService.readReview_byUser(db, patient_id=patient_id)
     if db_review is None:
@@ -293,6 +358,8 @@ def readReview_byUser(patient_id: int, db: Session = Depends(get_db), skip: int 
 
 @app.get("/review_doctor/{doctor_id}", response_model=list[ReviewSchema.Review])
 def readReview_byDoctor(doctor_id: int, db: Session = Depends(get_db), skip: int = 0, limit: int = 100, token: str = Depends(oauth2_scheme)):
+    if token in blacklisted_tokens:
+        raise HTTPException(status_code=401, detail="Token revoked")
     usr =  Auth.verify_token(token) 
     db_review = ReviewService.readReview_byDoctor(db, doctor_id=doctor_id)
     if db_review is None:
@@ -301,6 +368,8 @@ def readReview_byDoctor(doctor_id: int, db: Session = Depends(get_db), skip: int
 
 @app.get("/reviews", response_model=list[ReviewSchema.Review])
 def readReview_all(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
+    if token in blacklisted_tokens:
+        raise HTTPException(status_code=401, detail="Token revoked")
     usr = Auth.verify_token(token) 
     db_review = ReviewService.readReview_all(db)
     if db_review is None:
@@ -311,6 +380,8 @@ def readReview_all(skip: int = 0, limit: int = 100, db: Session = Depends(get_db
 
 @app.post("/create_notification", response_model=NotificationSchema.Notification)
 def createNotification(notification: NotificationSchema.NotificationCreate, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
+    if token in blacklisted_tokens:
+        raise HTTPException(status_code=401, detail="Token revoked")
     # notification_exists = NotificationService.readNotification_byName(db, name=notification.name)
     # if notification_exists:
     #     raise HTTPException(status_code=400, detail="Obat sudah ada")
@@ -318,6 +389,8 @@ def createNotification(notification: NotificationSchema.NotificationCreate, db: 
 
 @app.get("/notification/{notification_id}", response_model=NotificationSchema.Notification)
 def readNotification(notification_id: int, db: Session = Depends(get_db),token: str = Depends(oauth2_scheme)):
+    if token in blacklisted_tokens:
+        raise HTTPException(status_code=401, detail="Token revoked")
     usr =  Auth.verify_token(token) 
     db_notification = NotificationService.readNotification(db, notification_id=notification_id)
     if db_notification is None:
@@ -326,6 +399,8 @@ def readNotification(notification_id: int, db: Session = Depends(get_db),token: 
 
 @app.get("/notification_patient/{patient_id}", response_model=list[NotificationSchema.Notification])
 def readNotification_byUser(patient_id: int, db: Session = Depends(get_db), skip: int = 0, limit: int = 100, token: str = Depends(oauth2_scheme)):
+    if token in blacklisted_tokens:
+        raise HTTPException(status_code=401, detail="Token revoked")
     usr =  Auth.verify_token(token) 
     db_notification = NotificationService.readNotification_byUser(db, patient_id=patient_id)
     if db_notification is None:
@@ -334,6 +409,8 @@ def readNotification_byUser(patient_id: int, db: Session = Depends(get_db), skip
 
 @app.get("/notifications", response_model=list[NotificationSchema.Notification])
 def readNotification_all(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
+    if token in blacklisted_tokens:
+        raise HTTPException(status_code=401, detail="Token revoked")
     usr = Auth.verify_token(token) 
     db_notification = NotificationService.readNotification_all(db)
     if db_notification is None:
@@ -343,10 +420,14 @@ def readNotification_all(skip: int = 0, limit: int = 100, db: Session = Depends(
 # --- Schedule Routes --- #
 @app.post("/create_schedule", response_model=ScheduleSchema.Schedule)
 def createSchedule(schedule: ScheduleSchema.ScheduleCreate, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
+    if token in blacklisted_tokens:
+        raise HTTPException(status_code=401, detail="Token revoked")
     return ScheduleService.createSchedule(db=db, schedule=schedule)
 
 @app.get("/schedule/{schedule_id}", response_model=ScheduleSchema.Schedule)
 def readSchedule(schedule_id: int, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
+    if token in blacklisted_tokens:
+        raise HTTPException(status_code=401, detail="Token revoked")
     usr = Auth.verify_token(token) 
     db_schedule = ScheduleService.readSchedule(db, schedule_id=schedule_id)
     if db_schedule is None:
@@ -355,6 +436,8 @@ def readSchedule(schedule_id: int, db: Session = Depends(get_db), token: str = D
 
 @app.get("/schedule_patient/{patient_id}", response_model=list[ScheduleSchema.Schedule])
 def readSchedule_byUser(patient_id: int, db: Session = Depends(get_db), skip: int = 0, limit: int = 100, token: str = Depends(oauth2_scheme)):
+    if token in blacklisted_tokens:
+        raise HTTPException(status_code=401, detail="Token revoked")
     usr = Auth.verify_token(token) 
     db_schedule = ScheduleService.readSchedule_byUser(db, patient_id=patient_id, skip=skip, limit=limit)
     if db_schedule is None:
@@ -363,6 +446,8 @@ def readSchedule_byUser(patient_id: int, db: Session = Depends(get_db), skip: in
 
 @app.get("/schedule_doctor/{doctor_id}", response_model=list[ScheduleSchema.Schedule])
 def readSchedule_byDoctor(doctor_id: int, db: Session = Depends(get_db), skip: int = 0, limit: int = 100, token: str = Depends(oauth2_scheme)):
+    if token in blacklisted_tokens:
+        raise HTTPException(status_code=401, detail="Token revoked")
     usr = Auth.verify_token(token) 
     db_schedule = ScheduleService.readSchedule_byDoctor(db, doctor_id=doctor_id, skip=skip, limit=limit)
     if db_schedule is None:
@@ -371,6 +456,8 @@ def readSchedule_byDoctor(doctor_id: int, db: Session = Depends(get_db), skip: i
 
 @app.get("/schedules", response_model=list[ScheduleSchema.Schedule])
 def readSchedule_all(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
+    if token in blacklisted_tokens:
+        raise HTTPException(status_code=401, detail="Token revoked")
     usr = Auth.verify_token(token) 
     db_schedule = ScheduleService.readSchedule_all(db, skip=skip, limit=limit)
     if db_schedule is None:
@@ -381,10 +468,14 @@ def readSchedule_all(skip: int = 0, limit: int = 100, db: Session = Depends(get_
 
 @app.post("/create_order", response_model=OrderSchema.Order)
 def createOrder(order: OrderSchema.OrderCreate, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
+    if token in blacklisted_tokens:
+        raise HTTPException(status_code=401, detail="Token revoked")
     return OrderService.createOrder(db=db, order=order)
 
 @app.get("/order/{order_id}", response_model=OrderSchema.Order)
 def readOrder(order_id: int, db: Session = Depends(get_db),token: str = Depends(oauth2_scheme)):
+    if token in blacklisted_tokens:
+        raise HTTPException(status_code=401, detail="Token revoked")
     usr =  Auth.verify_token(token) 
     db_order = OrderService.readOrder(db, order_id=order_id)
     if db_order is None:
@@ -393,6 +484,8 @@ def readOrder(order_id: int, db: Session = Depends(get_db),token: str = Depends(
 
 @app.get("/order_patient/{patient_id}", response_model=list[OrderSchema.Order])
 def readOrder_byUser(patient_id: int, db: Session = Depends(get_db), skip: int = 0, limit: int = 100, token: str = Depends(oauth2_scheme)):
+    if token in blacklisted_tokens:
+        raise HTTPException(status_code=401, detail="Token revoked")
     usr =  Auth.verify_token(token) 
     db_order = OrderService.readOrder_byUser(db, patient_id=patient_id)
     if db_order is None:
@@ -401,6 +494,8 @@ def readOrder_byUser(patient_id: int, db: Session = Depends(get_db), skip: int =
 
 @app.get("/orders", response_model=list[OrderSchema.Order])
 def readOrder_all(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
+    if token in blacklisted_tokens:
+        raise HTTPException(status_code=401, detail="Token revoked")
     usr = Auth.verify_token(token) 
     db_order = OrderService.readOrder_all(db)
     if db_order is None:
@@ -411,10 +506,14 @@ def readOrder_all(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)
 
 @app.post("/create_message", response_model=MessageSchema.Message)
 def createMessage(message: MessageSchema.MessageCreate, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
+    if token in blacklisted_tokens:
+        raise HTTPException(status_code=401, detail="Token revoked")
     return MessageService.createMessage(db=db, message=message)
 
 @app.get("/message/{message_id}", response_model=MessageSchema.Message)
 def readMessage(message_id: int, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
+    if token in blacklisted_tokens:
+        raise HTTPException(status_code=401, detail="Token revoked")
     usr = Auth.verify_token(token)
     db_message = MessageService.readMessage(db, message_id=message_id)
     if db_message is None:
@@ -423,6 +522,8 @@ def readMessage(message_id: int, db: Session = Depends(get_db), token: str = Dep
 
 @app.get("/messages", response_model=list[MessageSchema.Message])
 def readMessages(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
+    if token in blacklisted_tokens:
+        raise HTTPException(status_code=401, detail="Token revoked")
     usr = Auth.verify_token(token)
     db_messages = MessageService.readMessage_all(db, skip=skip, limit=limit)
     return db_messages
@@ -431,6 +532,8 @@ def readMessages(skip: int = 0, limit: int = 100, db: Session = Depends(get_db),
 
 @app.post("/create_hospital", response_model=HospitalSchema.Hospital)
 def createHospital(hospital: HospitalSchema.HospitalCreate, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
+    if token in blacklisted_tokens:
+        raise HTTPException(status_code=401, detail="Token revoked")
     hospital_exists = HospitalService.readHospital_byName(db, name=hospital.name)
     if hospital_exists:
         raise HTTPException(status_code=400, detail="Rumah Sakit sudah ada")
@@ -438,6 +541,8 @@ def createHospital(hospital: HospitalSchema.HospitalCreate, db: Session = Depend
 
 @app.get("/hospital/{hospital_id}", response_model=HospitalSchema.Hospital)
 def readHospital(hospital_id: int, db: Session = Depends(get_db),token: str = Depends(oauth2_scheme)):
+    if token in blacklisted_tokens:
+        raise HTTPException(status_code=401, detail="Token revoked")
     usr =  Auth.verify_token(token) 
     db_hospital = HospitalService.readHospital(db, hospital_id=hospital_id)
     if db_hospital is None:
@@ -446,6 +551,8 @@ def readHospital(hospital_id: int, db: Session = Depends(get_db),token: str = De
 
 @app.get("/hospitals", response_model=list[HospitalSchema.Hospital])
 def readHospital_all(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
+    if token in blacklisted_tokens:
+        raise HTTPException(status_code=401, detail="Token revoked")
     usr = Auth.verify_token(token) 
     db_hospital = HospitalService.readHospital_all(db)
     if db_hospital is None:
@@ -453,7 +560,7 @@ def readHospital_all(skip: int = 0, limit: int = 100, db: Session = Depends(get_
     return db_hospital
   
 @app.post("/token", response_model=Auth.Token)
-async def token(req: Request, form_data: OAuth2PasswordRequestForm = Depends(),db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
+async def token(req: Request, form_data: OAuth2PasswordRequestForm = Depends(),db: Session = Depends(get_db)):
 
     f = UserService.UserCreate
     f.username = form_data.username

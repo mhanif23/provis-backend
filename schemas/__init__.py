@@ -8,3 +8,4 @@ from .NotificationSchema import *
 from .ScheduleSchema import *
 from .OrderSchema import *
 from .MessageSchema import *
+from .HospitalSchema import *

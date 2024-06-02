@@ -29,7 +29,7 @@ class Doctor(BaseDB):
     id = Column(Integer, primary_key=True)
     name = Column(String, unique=True, index=True)
     specialty = Column(String)
-    hospital = Column(String)
+    hospital = Column(Integer)
     experience = Column(String)
     philosophy = Column(String)
     innovation = Column(String)

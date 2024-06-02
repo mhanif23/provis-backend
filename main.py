@@ -376,7 +376,32 @@ def readMessages(skip: int = 0, limit: int = 100, db: Session = Depends(get_db),
     usr = Auth.verify_token(token)
     db_messages = MessageService.readMessage_all(db, skip=skip, limit=limit)
     return db_messages
-    
+
+# --- Hospital Routes --- #
+
+@app.post("/create_hospital", response_model=HospitalSchema.Hospital)
+def createHospital(hospital: HospitalSchema.HospitalCreate, db: Session = Depends(get_db)):
+    hospital_exists = HospitalService.readHospital_byName(db, name=hospital.name)
+    if hospital_exists:
+        raise HTTPException(status_code=400, detail="Rumah Sakit sudah ada")
+    return HospitalService.createHospital(db=db, hospital=hospital)
+
+@app.get("/hospital/{hospital_id}", response_model=HospitalSchema.Hospital)
+def readHospital(hospital_id: int, db: Session = Depends(get_db),token: str = Depends(oauth2_scheme)):
+    usr =  Auth.verify_token(token) 
+    db_hospital = HospitalService.readHospital(db, hospital_id=hospital_id)
+    if db_hospital is None:
+        raise HTTPException(status_code=404, detail="Rumah Sakit tidak ditemukan")
+    return db_hospital
+
+@app.get("/hospitals", response_model=list[HospitalSchema.Hospital])
+def readHospital_all(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
+    usr = Auth.verify_token(token) 
+    db_hospital = HospitalService.readHospital_all(db)
+    if db_hospital is None:
+        raise HTTPException(status_code=404, detail="List RS kosong")
+    return db_hospital
+  
 @app.post("/token", response_model=Auth.Token)
 async def token(req: Request, form_data: OAuth2PasswordRequestForm = Depends(),db: Session = Depends(get_db)):
 

@@ -8,4 +8,5 @@ from .NotificationService import *
 from .ScheduleService import *
 from .OrderService import *
 from .MessageService import *
+from .HospitalService import *
 from .Auth import *

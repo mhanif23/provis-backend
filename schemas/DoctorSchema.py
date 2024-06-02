@@ -5,7 +5,7 @@ class DoctorBase(BaseModel):
     name: str
 class DoctorCreate(DoctorBase):
     specialty: str
-    hospital: str
+    hospital: int
     experience: str
     philosophy: str
     innovation: str

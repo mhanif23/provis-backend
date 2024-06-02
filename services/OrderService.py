@@ -8,7 +8,8 @@ def createOrder(db: Session, order: OrderCreate):
         medicine_id=order.medicine_id,
         address=order.address,
         courier=order.courier,
-        payment=order.payment
+        payment=order.payment,
+        bpjs=order.bpjs
     )
     db.add(db_order)
     db.commit()

@@ -1,5 +1,5 @@
 import bcrypt
-import datetime
+from datetime import datetime, timedelta
 
 from schemas import *
 from jose import jwt # Json web tokens
@@ -18,7 +18,7 @@ def encrypt(passwd: str):
 
     
 def create_access_token(username):
-    expiration_time = datetime.datetime.utcnow() + datetime.timedelta(hours=24)    # .now(datetime.UTC)
+    expiration_time = datetime.utcnow() + timedelta(hours=24)    # .now(datetime.UTC)
     access_token = jwt.encode({"username":username,"exp":expiration_time},"krakukra",algorithm="HS256")
     return access_token
 

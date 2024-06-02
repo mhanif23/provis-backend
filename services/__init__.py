@@ -7,4 +7,5 @@ from .ReviewService import *
 from .NotificationService import *
 from .ScheduleService import *
 from .OrderService import *
+from .MessageService import *
 from .Auth import *

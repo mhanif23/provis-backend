@@ -18,6 +18,12 @@ def readDoctor(db: Session, doctor_id: int):
 def readDoctor_byName(db: Session, name: str):
     return db.query(model.Doctor).filter(model.Doctor.name == name).first()
 
+def readDoctor_nameAll(db: Session, name: str, skip: int = 0, limit: int = 100):
+    return db.query(model.Doctor).filter(model.Doctor.name.like(f"%{name}%")).offset(skip).limit(limit).all()
+    
+def readDoctor_specialtyAll(db: Session, specialty: str, skip: int = 0, limit: int = 100):
+    return db.query(model.Doctor).filter(model.Doctor.specialty.like(f"%{specialty}%")).offset(skip).limit(limit).all()
+
 def readDoctor_all(db: Session, skip: int = 0, limit: int = 100):
     return db.query(model.Doctor).offset(skip).limit(limit).all()
 

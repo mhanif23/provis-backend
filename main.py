@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session # Session Handler
 from os import path # Path handling
 
 # FastAPI Stuffs
-from fastapi import FastAPI # BAse FastAPI class
+from fastapi import FastAPI # Base FastAPI class
 from fastapi import Depends, Request, HTTPException # Request handling
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware # Middleware for token auth
@@ -64,7 +64,7 @@ def createUser(user: UserSchema.UserCreate, db: Session = Depends(get_db)):
 @app.post("/login") 
 async def login(user: UserSchema.UserLogin, db: Session = Depends(get_db)):
     if not UserService.authenticate(db,user):
-        raise HTTPException(status_code=400, detail="Login gagal")
+        raise HTTPException(status_code=400, detail="Username atau Password Salah!")
 
     user_login = UserService.readUser_byUsername(db,user.username)
     if user:
@@ -80,12 +80,14 @@ def readUser(user_id: int, db: Session = Depends(get_db),token: str = Depends(oa
     db_user = UserService.readUser(db, user_id=user_id)
     if db_user is None:
         raise HTTPException(status_code=404, detail="User tidak ditemukan")
-    return db_user
+    return db_userstring
 
 @app.get("/users", response_model=list[UserSchema.User])
 def readUser(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
     usr = Auth.verify_token(token) 
     db_users = UserService.readUser_all(db, skip=skip, limit=limit)
+    if db_users is None:
+        raise HTTPException(status_code=404, detail="List user kosong")
     return db_users
 
 # --- Doctor Routes --- #
@@ -110,8 +112,24 @@ def readDoctor(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), t
     usr = Auth.verify_token(token) 
     db_doctor = DoctorService.readDoctor_all(db)
     if db_doctor is None:
-        raise HTTPException(status_code=404, detail="Doctor tidak ditemukan")
+        raise HTTPException(status_code=404, detail="List doctor kosong")
     return db_doctor
+
+@app.get("/doctors/searchName", response_model=list[DoctorSchema.Doctor])
+def readDoctor_nameAll(name: str, skip: int = 0, limit: int = 100, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
+    usr = Auth.verify_token(token)
+    db_doctors = DoctorService.readDoctor_nameAll(db, name=name, skip=skip, limit=limit)
+    if not db_doctors:
+        raise HTTPException(status_code=404, detail=f"Dokter {name} tidak ditemukan")
+    return db_doctors
+
+@app.get("/doctors/searchSpecialty", response_model=list[DoctorSchema.Doctor])
+def readDoctor_specialtyAll(specialty: str, skip: int = 0, limit: int = 100, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
+    usr = Auth.verify_token(token)
+    db_doctors = DoctorService.readDoctor_specialtyAll(db, specialty=specialty, skip=skip, limit=limit)
+    if not db_doctors:
+        raise HTTPException(status_code=404, detail=f"Dokter spesialis {specialty} tidak ditemukan")
+    return db_doctors
 
 # ---  Medicine Routes --- #
 
@@ -135,16 +153,13 @@ def readMedicine(skip: int = 0, limit: int = 100, db: Session = Depends(get_db),
     usr = Auth.verify_token(token) 
     db_medicine = MedicineService.readMedicine_all(db)
     if db_medicine is None:
-        raise HTTPException(status_code=404, detail="Medicine tidak ditemukan")
+        raise HTTPException(status_code=404, detail="List obat kosong")
     return db_medicine
 
 # --- Diagnosis Routes --- #
 
 @app.post("/create_diagnosis", response_model=DiagnosisSchema.Diagnosis)
 def createDiagnosis(diagnosis: DiagnosisSchema.DiagnosisCreate, db: Session = Depends(get_db)):
-    # diagnosis_exists = DiagnosisService.readDiagnosis(db, id=diagnosis.id)
-    # if diagnosis_exists:
-    #     raise HTTPException(status_code=400, detail="Obat sudah ada")
     return DiagnosisService.createDiagnosis(db=db, diagnosis=diagnosis)
 
 @app.get("/diagnosis/{diagnosis_id}", response_model=DiagnosisSchema.Diagnosis)
@@ -152,7 +167,7 @@ def readDiagnosis(diagnosis_id: int, db: Session = Depends(get_db),token: str = 
     usr =  Auth.verify_token(token) 
     db_diagnosis = DiagnosisService.readDiagnosis(db, diagnosis_id=diagnosis_id)
     if db_diagnosis is None:
-        raise HTTPException(status_code=404, detail="Obat tidak ditemukan")
+        raise HTTPException(status_code=404, detail="Diagnosis tidak ditemukan")
     return db_diagnosis
 
 @app.get("/diagnosis_patient/{patient_id}", response_model=list[DiagnosisSchema.Diagnosis])
@@ -160,7 +175,7 @@ def readDiagnosis_byUser(patient_id: int, db: Session = Depends(get_db), skip: i
     usr =  Auth.verify_token(token) 
     db_diagnosis = DiagnosisService.readDiagnosis_byUser(db, patient_id=patient_id)
     if db_diagnosis is None:
-        raise HTTPException(status_code=404, detail="Obat tidak ditemukan")
+        raise HTTPException(status_code=404, detail="Pasien tidak memiliki diagnosis apa apa")
     return db_diagnosis
 
 @app.get("/diagnoses", response_model=list[DiagnosisSchema.Diagnosis])
@@ -168,7 +183,7 @@ def readDiagnosis(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)
     usr = Auth.verify_token(token) 
     db_diagnosis = DiagnosisService.readDiagnosis_all(db)
     if db_diagnosis is None:
-        raise HTTPException(status_code=404, detail="Diagnosis tidak ditemukan")
+        raise HTTPException(status_code=404, detail="List diagnosis kosong")
     return db_diagnosis
 
 # --- Illness Routes --- #
@@ -177,7 +192,7 @@ def readDiagnosis(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)
 def createIllness(illness: IllnessSchema.IllnessCreate, db: Session = Depends(get_db)):
     illness_exists = IllnessService.readIllness_byName(db, name=illness.name)
     if illness_exists:
-        raise HTTPException(status_code=400, detail="Obat sudah ada")
+        raise HTTPException(status_code=400, detail="Data penyakit sudah ada")
     return IllnessService.createIllness(db=db, illness=illness)
 
 @app.get("/illness/{illness_id}", response_model=IllnessSchema.Illness)
@@ -185,7 +200,7 @@ def readIllness(illness_id: int, db: Session = Depends(get_db),token: str = Depe
     usr =  Auth.verify_token(token) 
     db_illness = IllnessService.readIllness(db, illness_id=illness_id)
     if db_illness is None:
-        raise HTTPException(status_code=404, detail="Obat tidak ditemukan")
+        raise HTTPException(status_code=404, detail="Penyakit tidak ditemukan")
     return db_illness
 
 @app.get("/illness_category/{category}", response_model=list[IllnessSchema.Illness])
@@ -193,7 +208,7 @@ def readIllness_byCategory(category: str, db: Session = Depends(get_db), skip: i
     usr =  Auth.verify_token(token) 
     db_illness = IllnessService.readIllness_byCategory(db, category=category)
     if db_illness is None:
-        raise HTTPException(status_code=404, detail="Obat tidak ditemukan")
+        raise HTTPException(status_code=404, detail="Kategori penyakit {category} kosong")
     return db_illness
 
 @app.get("/illnesses", response_model=list[IllnessSchema.Illness])
@@ -201,24 +216,21 @@ def readIllness_all(skip: int = 0, limit: int = 100, db: Session = Depends(get_d
     usr = Auth.verify_token(token) 
     db_illness = IllnessService.readIllness_all(db)
     if db_illness is None:
-        raise HTTPException(status_code=404, detail="Illness tidak ditemukan")
+        raise HTTPException(status_code=404, detail="List penyakit kosong")
     return db_illness
 
 # --- Review Routes --- #
 
 @app.post("/create_review", response_model=ReviewSchema.Review)
 def createReview(review: ReviewSchema.ReviewCreate, db: Session = Depends(get_db)):
-    # review_exists = ReviewService.readReview_byName(db, name=review.name)
-    # if review_exists:
-    #     raise HTTPException(status_code=400, detail="Obat sudah ada")
-    return ReviewService.createReview(db=db, review=review)
+  return ReviewService.createReview(db=db, review=review)
 
 @app.get("/review/{review_id}", response_model=ReviewSchema.Review)
 def readReview(review_id: int, db: Session = Depends(get_db),token: str = Depends(oauth2_scheme)):
     usr =  Auth.verify_token(token) 
     db_review = ReviewService.readReview(db, review_id=review_id)
     if db_review is None:
-        raise HTTPException(status_code=404, detail="Obat tidak ditemukan")
+        raise HTTPException(status_code=404, detail="Review tidak ditemukan")
     return db_review
 
 @app.get("/review_patient/{patient_id}", response_model=list[ReviewSchema.Review])
@@ -226,7 +238,7 @@ def readReview_byUser(patient_id: int, db: Session = Depends(get_db), skip: int 
     usr =  Auth.verify_token(token) 
     db_review = ReviewService.readReview_byUser(db, patient_id=patient_id)
     if db_review is None:
-        raise HTTPException(status_code=404, detail="Obat tidak ditemukan")
+        raise HTTPException(status_code=404, detail="Pasien belum membuat review")
     return db_review
 
 @app.get("/review_doctor/{doctor_id}", response_model=list[ReviewSchema.Review])
@@ -234,7 +246,7 @@ def readReview_byDoctor(doctor_id: int, db: Session = Depends(get_db), skip: int
     usr =  Auth.verify_token(token) 
     db_review = ReviewService.readReview_byDoctor(db, doctor_id=doctor_id)
     if db_review is None:
-        raise HTTPException(status_code=404, detail="Obat tidak ditemukan")
+        raise HTTPException(status_code=404, detail="Dokter belum diberi review")
     return db_review
 
 @app.get("/reviews", response_model=list[ReviewSchema.Review])
@@ -242,7 +254,7 @@ def readReview_all(skip: int = 0, limit: int = 100, db: Session = Depends(get_db
     usr = Auth.verify_token(token) 
     db_review = ReviewService.readReview_all(db)
     if db_review is None:
-        raise HTTPException(status_code=404, detail="Review tidak ditemukan")
+        raise HTTPException(status_code=404, detail="List review kosong")
     return db_review
 
 # --- Notification Route --- # 
@@ -259,7 +271,7 @@ def readNotification(notification_id: int, db: Session = Depends(get_db),token: 
     usr =  Auth.verify_token(token) 
     db_notification = NotificationService.readNotification(db, notification_id=notification_id)
     if db_notification is None:
-        raise HTTPException(status_code=404, detail="Obat tidak ditemukan")
+        raise HTTPException(status_code=404, detail="Notif tidak ditemukan")
     return db_notification
 
 @app.get("/notification_patient/{patient_id}", response_model=list[NotificationSchema.Notification])
@@ -267,7 +279,7 @@ def readNotification_byUser(patient_id: int, db: Session = Depends(get_db), skip
     usr =  Auth.verify_token(token) 
     db_notification = NotificationService.readNotification_byUser(db, patient_id=patient_id)
     if db_notification is None:
-        raise HTTPException(status_code=404, detail="Obat tidak ditemukan")
+        raise HTTPException(status_code=404, detail="Tidak ada notif untuk pasien")
     return db_notification
 
 @app.get("/notifications", response_model=list[NotificationSchema.Notification])
@@ -275,57 +287,50 @@ def readNotification_all(skip: int = 0, limit: int = 100, db: Session = Depends(
     usr = Auth.verify_token(token) 
     db_notification = NotificationService.readNotification_all(db)
     if db_notification is None:
-        raise HTTPException(status_code=404, detail="Notification tidak ditemukan")
+        raise HTTPException(status_code=404, detail="Tidak ada notif untuk pasien")
     return db_notification
 
 # --- Schedule Routes --- #
-
 @app.post("/create_schedule", response_model=ScheduleSchema.Schedule)
 def createSchedule(schedule: ScheduleSchema.ScheduleCreate, db: Session = Depends(get_db)):
-    # schedule_exists = ScheduleService.readSchedule_byName(db, name=schedule.name)
-    # if schedule_exists:
-    #     raise HTTPException(status_code=400, detail="Obat sudah ada")
     return ScheduleService.createSchedule(db=db, schedule=schedule)
 
 @app.get("/schedule/{schedule_id}", response_model=ScheduleSchema.Schedule)
-def readSchedule(schedule_id: int, db: Session = Depends(get_db),token: str = Depends(oauth2_scheme)):
-    usr =  Auth.verify_token(token) 
+def readSchedule(schedule_id: int, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
+    usr = Auth.verify_token(token) 
     db_schedule = ScheduleService.readSchedule(db, schedule_id=schedule_id)
     if db_schedule is None:
-        raise HTTPException(status_code=404, detail="Obat tidak ditemukan")
+        raise HTTPException(status_code=404, detail="Schedule tidak ditemukan")
     return db_schedule
 
 @app.get("/schedule_patient/{patient_id}", response_model=list[ScheduleSchema.Schedule])
 def readSchedule_byUser(patient_id: int, db: Session = Depends(get_db), skip: int = 0, limit: int = 100, token: str = Depends(oauth2_scheme)):
-    usr =  Auth.verify_token(token) 
-    db_schedule = ScheduleService.readSchedule_byUser(db, patient_id=patient_id)
+    usr = Auth.verify_token(token) 
+    db_schedule = ScheduleService.readSchedule_byUser(db, patient_id=patient_id, skip=skip, limit=limit)
     if db_schedule is None:
-        raise HTTPException(status_code=404, detail="Obat tidak ditemukan")
+        raise HTTPException(status_code=404, detail="Pasien belum membuat janji dengan dokter")
     return db_schedule
 
 @app.get("/schedule_doctor/{doctor_id}", response_model=list[ScheduleSchema.Schedule])
 def readSchedule_byDoctor(doctor_id: int, db: Session = Depends(get_db), skip: int = 0, limit: int = 100, token: str = Depends(oauth2_scheme)):
-    usr =  Auth.verify_token(token) 
-    db_schedule = ScheduleService.readSchedule_byDoctor(db, doctor_id=doctor_id)
+    usr = Auth.verify_token(token) 
+    db_schedule = ScheduleService.readSchedule_byDoctor(db, doctor_id=doctor_id, skip=skip, limit=limit)
     if db_schedule is None:
-        raise HTTPException(status_code=404, detail="Obat tidak ditemukan")
+        raise HTTPException(status_code=404, detail="Dokter tidak memiliki janji dengan pasien")
     return db_schedule
 
 @app.get("/schedules", response_model=list[ScheduleSchema.Schedule])
 def readSchedule_all(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
     usr = Auth.verify_token(token) 
-    db_schedule = ScheduleService.readSchedule_all(db)
+    db_schedule = ScheduleService.readSchedule_all(db, skip=skip, limit=limit)
     if db_schedule is None:
-        raise HTTPException(status_code=404, detail="Schedule tidak ditemukan")
+        raise HTTPException(status_code=404, detail="Data schedule kosong")
     return db_schedule
 
 # --- Order Routes --- #
 
 @app.post("/create_order", response_model=OrderSchema.Order)
 def createOrder(order: OrderSchema.OrderCreate, db: Session = Depends(get_db)):
-    # order_exists = OrderService.readOrder_byName(db, name=order.name)
-    # if order_exists:
-    #     raise HTTPException(status_code=400, detail="Obat sudah ada")
     return OrderService.createOrder(db=db, order=order)
 
 @app.get("/order/{order_id}", response_model=OrderSchema.Order)
@@ -333,7 +338,7 @@ def readOrder(order_id: int, db: Session = Depends(get_db),token: str = Depends(
     usr =  Auth.verify_token(token) 
     db_order = OrderService.readOrder(db, order_id=order_id)
     if db_order is None:
-        raise HTTPException(status_code=404, detail="Obat tidak ditemukan")
+        raise HTTPException(status_code=404, detail="Order tidak ditemukan")
     return db_order
 
 @app.get("/order_patient/{patient_id}", response_model=list[OrderSchema.Order])
@@ -341,7 +346,7 @@ def readOrder_byUser(patient_id: int, db: Session = Depends(get_db), skip: int =
     usr =  Auth.verify_token(token) 
     db_order = OrderService.readOrder_byUser(db, patient_id=patient_id)
     if db_order is None:
-        raise HTTPException(status_code=404, detail="Obat tidak ditemukan")
+        raise HTTPException(status_code=404, detail="Pasien belum memesan apa apa")
     return db_order
 
 @app.get("/orders", response_model=list[OrderSchema.Order])
@@ -349,9 +354,29 @@ def readOrder_all(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)
     usr = Auth.verify_token(token) 
     db_order = OrderService.readOrder_all(db)
     if db_order is None:
-        raise HTTPException(status_code=404, detail="Order tidak ditemukan")
+        raise HTTPException(status_code=404, detail="Data order ksoong")
     return db_order
 
+# --- Message Routes --- #
+
+@app.post("/create_message", response_model=MessageSchema.Message)
+def createMessage(message: MessageSchema.MessageCreate, db: Session = Depends(get_db)):
+    return MessageService.createMessage(db=db, message=message)
+
+@app.get("/message/{message_id}", response_model=MessageSchema.Message)
+def readMessage(message_id: int, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
+    usr = Auth.verify_token(token)
+    db_message = MessageService.readMessage(db, message_id=message_id)
+    if db_message is None:
+        raise HTTPException(status_code=404, detail="Message tidak ditemukan")
+    return db_message
+
+@app.get("/messages", response_model=list[MessageSchema.Message])
+def readMessages(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
+    usr = Auth.verify_token(token)
+    db_messages = MessageService.readMessage_all(db, skip=skip, limit=limit)
+    return db_messages
+    
 @app.post("/token", response_model=Auth.Token)
 async def token(req: Request, form_data: OAuth2PasswordRequestForm = Depends(),db: Session = Depends(get_db)):
 
@@ -359,15 +384,9 @@ async def token(req: Request, form_data: OAuth2PasswordRequestForm = Depends(),d
     f.username = form_data.username
     f.password = form_data.password
     if not UserService.authenticate(db,f):
-        raise HTTPException(status_code=400, detail="username or password tidak cocok")
+        raise HTTPException(status_code=400, detail="Username atau Password salah")
 
-    #info = crud.readUser_byUsername(form_data.username)
-    # email = info["email"]   
-    # role  = info["role"]   
     username  = form_data.username
-
-    #buat access token
-    # def create_access_token(user_name,email,role,nama,status,kode_dosen,unit):
     access_token  = create_access_token(username)
 
     return {"access_token": access_token, "token_type": "bearer"}

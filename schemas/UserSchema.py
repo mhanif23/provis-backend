@@ -12,6 +12,7 @@ class UserBase(BaseModel):
     date_of_birth: str
     allergy: str
     allergy_year: str
+    bpjs_status: bool
 
 class UserCreate(UserBase):
     password: str

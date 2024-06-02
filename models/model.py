@@ -5,6 +5,7 @@ from sqlalchemy.orm import Mapped
 from typing import List
 from sqlalchemy import Table
 from sqlalchemy import DateTime
+from datetime import datetime
 
 class User(BaseDB):
     __tablename__ = "users"
@@ -21,6 +22,7 @@ class User(BaseDB):
     date_of_birth = Column(String)
     allergy = Column(String)
     allergy_year = Column(String)
+    bpjs_status = Column(Boolean)
 
 class Doctor(BaseDB):
     __tablename__ = "doctors"
@@ -82,8 +84,11 @@ class Schedule(BaseDB):
     patient_id = Column(Integer)
     doctor_id = Column(Integer)
     reservation_num = Column(Integer)
-    time = Column(String)
+    timestart = Column(String)
+    timeend = Column(String)
     location = Column(String)
+    status = Column(String)
+    bpjs = Column(Boolean)
     
 class Order(BaseDB):
     __tablename__ = "order"
@@ -93,5 +98,14 @@ class Order(BaseDB):
     address = Column(String)
     courier = Column(String)
     payment = Column(String)
+    bpjs = Column(Boolean)
+
+class Message(BaseDB):
+    __tablename__ = "message"
+    id = Column(Integer, primary_key=True)
+    patient_id = Column(Integer)
+    doctor_id = Column(Integer)
+    datetime = Column(String)
+    text = Column(String)
 
 

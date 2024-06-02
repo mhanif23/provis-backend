@@ -5,6 +5,7 @@ class OrderBase(BaseModel):
     address: str
     courier: str
     payment: str
+    bpjs: bool
 
 class OrderCreate(OrderBase):
     patient_id: int

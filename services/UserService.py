@@ -17,7 +17,8 @@ def createUser(db: Session, user: UserCreate):
                          name=user.name, medical_record=user.medical_record, nik=user.nik, gender=user.gender,
                          address=user.address, telephone=user.telephone,
                          date_of_birth=user.date_of_birth, allergy=user.allergy,
-                         allergy_year=user.allergy_year)
+                         allergy_year=user.allergy_year,
+                         bpjs_status=user.bpjs_status)
     db.add(db_user)
     db.commit()
     db.refresh(db_user)

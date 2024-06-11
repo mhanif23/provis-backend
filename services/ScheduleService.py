@@ -12,7 +12,8 @@ def createSchedule(db: Session, schedule: ScheduleCreate):
         timeend=schedule.timeend.strftime("%H:%M:%S"),      # Convert time to string
         location=schedule.location,
         bpjs=schedule.bpjs,
-        status=schedule.status
+        status=schedule.status,
+        date=schedule.date
     )
     db.add(db_schedule)
     db.commit()

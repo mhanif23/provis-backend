@@ -10,7 +10,7 @@ class ScheduleBase(BaseModel):
     location: str
     status: str
     bpjs: bool
-    doctor_name: Optional[str]
+    date: str
 
 class ScheduleCreate(ScheduleBase):
     patient_id: int
@@ -20,6 +20,8 @@ class Schedule(ScheduleBase):
     id: int
     patient_id: int
     doctor_id: int
+    doctor_name: str
+    patient_name: str
 
     class Config:
         from_attributes = True

@@ -101,7 +101,8 @@ class Schedule(BaseDB):
     location = Column(String)
     status = Column(String)
     bpjs = Column(Boolean)
-    
+    date = Column(String)
+
 class Order(BaseDB):
     __tablename__ = "order"
     id = Column(Integer, primary_key=True)

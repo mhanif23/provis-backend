@@ -422,30 +422,82 @@ def readNotification_all(skip: int = 0, limit: int = 100, db: Session = Depends(
 
 # --- Schedule Routes --- #
 @app.post("/create_schedule", response_model=ScheduleSchema.Schedule)
-def createSchedule(schedule: ScheduleSchema.ScheduleCreate, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
-    if token in blacklisted_tokens:
-        raise HTTPException(status_code=401, detail="Token revoked")
-    return ScheduleService.createSchedule(db=db, schedule=schedule)
+def create_schedule(schedule: ScheduleSchema.ScheduleCreate, db: Session = Depends(get_db)):
+    doctor = db.query(model.Doctor).filter(model.Doctor.id == schedule.doctor_id).first()
+    if not doctor:
+        raise HTTPException(status_code=404, detail="Doctor not found")
+    
+    db_schedule = ScheduleService.createSchedule(db, schedule)
+    return {
+        "id": db_schedule.id,
+        "patient_id": db_schedule.patient_id,
+        "doctor_id": db_schedule.doctor_id,
+        "doctor_name": doctor.name,
+        "patient_name": db.query(model.Patient).filter(model.Patient.id == db_schedule.patient_id).first().name,
+        "reservation_num": db_schedule.reservation_num,
+        "timestart": db_schedule.timestart,
+        "timeend": db_schedule.timeend,
+        "location": db_schedule.location,
+        "status": db_schedule.status,
+        "bpjs": db_schedule.bpjs,
+        "date": db_schedule.date
+    }
 
 @app.get("/schedule/{schedule_id}", response_model=ScheduleSchema.Schedule)
-def readSchedule(schedule_id: int, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
-    if token in blacklisted_tokens:
-        raise HTTPException(status_code=401, detail="Token revoked")
-    usr = Auth.verify_token(token) 
+def get_schedule(schedule_id: int, db: Session = Depends(get_db)):
     db_schedule = ScheduleService.readSchedule(db, schedule_id=schedule_id)
-    if db_schedule is None:
-        raise HTTPException(status_code=404, detail="Schedule tidak ditemukan")
-    return db_schedule
+    if not db_schedule:
+        raise HTTPException(status_code=404, detail="Schedule not found")
+    
+    doctor = db.query(model.Doctor).filter(model.Doctor.id == db_schedule.doctor_id).first()
+    patient = db.query(model.Patient).filter(model.Patient.id == db_schedule.patient_id).first()
+    
+    return {
+        "id": db_schedule.id,
+        "patient_id": db_schedule.patient_id,
+        "doctor_id": db_schedule.doctor_id,
+        "doctor_name": doctor.name if doctor else None,
+        "patient_name": patient.name if patient else None,
+        "reservation_num": db_schedule.reservation_num,
+        "timestart": db_schedule.timestart,
+        "timeend": db_schedule.timeend,
+        "location": db_schedule.location,
+        "status": db_schedule.status,
+        "bpjs": db_schedule.bpjs,
+        "date": db_schedule.date
+    }
 
 @app.get("/schedule_patient/{patient_id}", response_model=list[ScheduleSchema.Schedule])
 def readSchedule_byUser(patient_id: int, db: Session = Depends(get_db), skip: int = 0, limit: int = 100, token: str = Depends(oauth2_scheme)):
     if token in blacklisted_tokens:
         raise HTTPException(status_code=401, detail="Token revoked")
     usr = Auth.verify_token(token)
-    db_schedule = ScheduleService.readSchedule_byUser(db, patient_id=patient_id, skip=skip, limit=limit)
-    if db_schedule is None:
+    db_schedules = ScheduleService.readSchedule_byUser(db, patient_id=patient_id, skip=skip, limit=limit)
+    if db_schedules is None or len(db_schedules) == 0:
         raise HTTPException(status_code=404, detail="Pasien belum membuat janji dengan dokter")
-    return db_schedule
+    
+    schedules_with_doctor_name = []
+    for schedule in db_schedules:
+        doctor = db.query(model.Doctor).filter(model.Doctor.id == schedule.doctor_id).first()
+        patient = db.query(model.Patient).filter(model.Patient.id == schedule.patient_id).first()
+        schedule_data = {
+            "id": schedule.id,
+            "patient_id": schedule.patient_id,
+            "doctor_id": schedule.doctor_id,
+            "doctor_name": doctor.name if doctor else None,
+            "patient_name": patient.name if patient else None,
+            "reservation_num": schedule.reservation_num,
+            "timestart": schedule.timestart,
+            "timeend": schedule.timeend,
+            "location": schedule.location,
+            "status": schedule.status,
+            "bpjs": schedule.bpjs,
+            "date": str(schedule.date) if schedule.date else None  # Pastikan date dikembalikan sebagai string
+        }
+        schedules_with_doctor_name.append(schedule_data)
+    
+    return schedules_with_doctor_name
+
 
 @app.get("/schedule_doctor/{doctor_id}", response_model=list[ScheduleSchema.Schedule])
 def readSchedule_byDoctor(doctor_id: int, db: Session = Depends(get_db), skip: int = 0, limit: int = 100, token: str = Depends(oauth2_scheme)):

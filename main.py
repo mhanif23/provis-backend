@@ -109,13 +109,18 @@ def readUser(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), tok
 # --- Pasien Routes --- #
 
 @app.post("/create_patient", response_model=PatientSchema.Patient)
-def createPatient(patient: PatientSchema.PatientCreate, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
-    if token in blacklisted_tokens:
-        raise HTTPException(status_code=401, detail="Token revoked")
+def create_patient(patient: PatientSchema.PatientCreate, db: Session = Depends(get_db)):
     patient_exists = PatientService.readPatient_byName(db, name=patient.name)
     if patient_exists:
         raise HTTPException(status_code=400, detail="Nama pasien sudah digunakan")
     return PatientService.createPatient(db=db, patient=patient)
+
+@app.put("/patient/{patient_id}", response_model=Patient)
+def update_patient(patient_id: int, patient: PatientUpdate, db: Session = Depends(get_db)):
+    db_patient = PatientService.readPatient_byUID(db, user_id=patient_id)
+    if db_patient is None:
+        raise HTTPException(status_code=404, detail="Patient not found")
+    return PatientService.update_patient(db=db, patient_id=patient_id, patient=patient)
 
 @app.get("/patient/{patient_id}", response_model=PatientSchema.Patient)
 def readPatient(patient_id: int, db: Session = Depends(get_db),token: str = Depends(oauth2_scheme)):

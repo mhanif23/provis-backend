@@ -5,12 +5,12 @@ class HospitalBase(BaseModel):
     name: str
 class HospitalCreate(HospitalBase):
     address: str
-    longitude: int
+    longitude: str
     latitude: str
 class Hospital(HospitalBase):
     id: int
     address: str
-    longitude: int
+    longitude: str
     latitude: str
     
     class Config:

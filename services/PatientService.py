@@ -3,17 +3,43 @@ from models import model
 from schemas import *
 from sqlalchemy import desc
 
+def calculate_age(birth_date: str) -> int:
+    birth_date = datetime.strptime(birth_date, "%Y-%m-%d")
+    today = datetime.today()
+    age = today.year - birth_date.year - ((today.month, today.day) < (birth_date.month, birth_date.day))
+    return age
+
 def createPatient(db: Session, patient: PatientCreate):
-    db_patient = model.Patient(user_id=patient.user_id, name=patient.name, medical_record=patient.medical_record, nik=patient.nik, gender=patient.gender,
-                         address=patient.address, telephone=patient.telephone,
-                         date_of_birth=patient.date_of_birth, allergy=patient.allergy,
-                         allergy_year=patient.allergy_year,
-                         bpjs_status=patient.bpjs_status)
- 
+    age = calculate_age(patient.date_of_birth)
+    db_patient = model.Patient(
+        user_id=patient.user_id, 
+        name=patient.name, 
+        medical_record=patient.medical_record, 
+        nik=patient.nik, 
+        gender=patient.gender,
+        address=patient.address, 
+        telephone=patient.telephone,
+        date_of_birth=patient.date_of_birth, 
+        allergy=patient.allergy,
+        allergy_year=patient.allergy_year,
+        bpjs_status=patient.bpjs_status,
+        height=patient.height,
+        weight=patient.weight,
+        bmi=patient.bmi,
+        age=age
+    )
     db.add(db_patient)
     db.commit()
     db.refresh(db_patient)
     return db_patient
+
+# def update_patient(db: Session, patient_id: int, patient: PatientSchema.PatientUpdate):
+#     db_patient = db.query(model.Patient).filter(model.Patient.id == patient_id).first()
+#     for key, value in patient.dict().items():
+#         setattr(db_patient, key, value)
+#     db.commit()
+#     db.refresh(db_patient)
+#     return db_patient
 
 def readPatient(db: Session, patient_id: int):
     return db.query(model.Patient).filter(model.Patient.id == patient_id).first()
@@ -37,3 +63,17 @@ def deletePatient_all(db: Session):
     row_affected = db.query(model.Patient).delete()
     db.commit()
     return row_affected
+
+def get_patient(db: Session, patient_id: int):
+    return db.query(model.Patient).filter(model.Patient.id == patient_id).first()
+
+def update_patient(db: Session, patient_id: int, patient: PatientUpdate):
+    db_patient = db.query(model.Patient).filter(model.Patient.user_id == patient_id).first()
+    if db_patient is None:
+        return None
+
+    for key, value in patient.dict().items():
+        setattr(db_patient, key, value)
+    db.commit()
+    db.refresh(db_patient)
+    return db_patient

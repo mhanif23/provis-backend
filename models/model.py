@@ -1,5 +1,5 @@
 from schemas.Database import BaseDB
-from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, func
+from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, Float, func
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm import Mapped
 from typing import List
@@ -18,10 +18,10 @@ class User(BaseDB):
 class Patient(BaseDB):
     __tablename__ = "patients"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     user_id = Column(Integer, unique=True)
     name = Column(String)
-    medical_record = Column(String, unique=True, index=True)
+    medical_record = Column(String)
     nik = Column(String)
     gender = Column(String)
     address = Column(String)
@@ -30,6 +30,10 @@ class Patient(BaseDB):
     allergy = Column(String)
     allergy_year = Column(String)
     bpjs_status = Column(Boolean)
+    height = Column(Integer)
+    weight = Column(Integer)
+    bmi = Column(Float)
+    age = Column(Integer)
 
 class Doctor(BaseDB):
     __tablename__ = "doctors"
@@ -116,4 +120,11 @@ class Message(BaseDB):
     datetime = Column(String)
     text = Column(String)
 
+class Hospital(BaseDB):
+    __tablename__ = 'hospitals'
 
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, index=True)
+    address = Column(String)
+    longitude = Column(String)
+    latitude = Column(String)

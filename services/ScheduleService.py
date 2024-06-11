@@ -31,6 +31,10 @@ def readSchedule_byUser(db: Session, patient_id: int, skip: int = 0, limit: int 
     for schedule in schedules:
         schedule.timestart = time.fromisoformat(schedule.timestart)
         schedule.timeend = time.fromisoformat(schedule.timeend)
+        
+        doctor = db.query(model.Doctor).filter(model.Doctor.id == schedule.doctor_id).first()
+        schedule.doctor_name = doctor.name if doctor else "-"
+        
     return schedules
 
 def readSchedule_byDoctor(db: Session, doctor_id: int, skip: int = 0, limit: int = 100):

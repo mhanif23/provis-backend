@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session
 from models import model
 from schemas import *
 from sqlalchemy import desc
+from sqlalchemy import or_
 
 def createDoctor(db: Session, doctor: DoctorCreate):
     db_doctor = model.Doctor(name=doctor.name, user_id=doctor.user_id, specialty=doctor.specialty,
@@ -21,8 +22,17 @@ def readDoctor_byName(db: Session, name: str):
 def readDoctor_byUID(db: Session, user_id: int):
     return db.query(model.Doctor).filter(model.Doctor.user_id == user_id).first()
 
-def readDoctor_nameAll(db: Session, name: str, skip: int = 0, limit: int = 100):
-    return db.query(model.Doctor).filter(model.Doctor.name.like(f"%{name}%")).offset(skip).limit(limit).all()
+def readDoctor_nameOrSpecialty(db: Session, search_term: str, skip: int = 0, limit: int = 100):
+    return (db.query(model.Doctor)
+            .filter(
+                or_(
+                    model.Doctor.name.like(f"%{search_term}%"),
+                    model.Doctor.specialty.like(f"%{search_term}%")
+                )
+            )
+            .offset(skip)
+            .limit(limit)
+            .all())
     
 def readDoctor_specialtyAll(db: Session, specialty: str, skip: int = 0, limit: int = 100):
     return db.query(model.Doctor).filter(model.Doctor.specialty.like(f"%{specialty}%")).offset(skip).limit(limit).all()

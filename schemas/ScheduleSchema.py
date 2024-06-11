@@ -1,5 +1,7 @@
 from pydantic import BaseModel
 from datetime import time
+from typing import Optional
+
 # Schedule-related schema
 class ScheduleBase(BaseModel):
     reservation_num: int
@@ -8,6 +10,7 @@ class ScheduleBase(BaseModel):
     location: str
     status: str
     bpjs: bool
+    doctor_name: Optional[str]
 
 class ScheduleCreate(ScheduleBase):
     patient_id: int

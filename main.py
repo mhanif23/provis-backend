@@ -203,15 +203,13 @@ def readDoctor_all(skip: int = 0, limit: int = 100, db: Session = Depends(get_db
         raise HTTPException(status_code=404, detail="List doctor kosong")
     return db_doctor
 
-@app.get("/doctors/searchName", response_model=list[DoctorSchema.Doctor])
-def readDoctor_nameAll(name: str, skip: int = 0, limit: int = 100, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
+@app.get("/doctors/search", response_model=list[DoctorSchema.Doctor])
+def search_doctors(search_term: str, db: Session = Depends(get_db), skip: int = 0, limit: int = 100, token: str = Depends(oauth2_scheme)):
     if token in blacklisted_tokens:
         raise HTTPException(status_code=401, detail="Token revoked")
     usr = Auth.verify_token(token)
-    db_doctors = DoctorService.readDoctor_nameAll(db, name=name, skip=skip, limit=limit)
-    if not db_doctors:
-        raise HTTPException(status_code=404, detail=f"Dokter {name} tidak ditemukan")
-    return db_doctors
+    doctors = DoctorService.readDoctor_nameOrSpecialty(db, search_term, skip, limit)
+    return doctors
 
 @app.get("/doctors/searchSpecialty", response_model=list[DoctorSchema.Doctor])
 def readDoctor_specialtyAll(specialty: str, skip: int = 0, limit: int = 100, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
@@ -443,7 +441,7 @@ def readSchedule(schedule_id: int, db: Session = Depends(get_db), token: str = D
 def readSchedule_byUser(patient_id: int, db: Session = Depends(get_db), skip: int = 0, limit: int = 100, token: str = Depends(oauth2_scheme)):
     if token in blacklisted_tokens:
         raise HTTPException(status_code=401, detail="Token revoked")
-    usr = Auth.verify_token(token) 
+    usr = Auth.verify_token(token)
     db_schedule = ScheduleService.readSchedule_byUser(db, patient_id=patient_id, skip=skip, limit=limit)
     if db_schedule is None:
         raise HTTPException(status_code=404, detail="Pasien belum membuat janji dengan dokter")

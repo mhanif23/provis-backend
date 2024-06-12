@@ -580,7 +580,7 @@ def readMessages(skip: int = 0, limit: int = 100, db: Session = Depends(get_db),
     if token in blacklisted_tokens:
         raise HTTPException(status_code=401, detail="Token revoked")
     usr = Auth.verify_token(token)
-    db_messages = MessageService.readMessage_all(db, skip=skip, limit=limit)
+    db_messages = MessageService.readMessages_all(db, skip=skip, limit=limit)
     return db_messages
 
 # --- Hospital Routes --- #
